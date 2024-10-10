@@ -9,7 +9,6 @@ import (
 )
 
 func TestUnpack(t *testing.T) {
-
 	tests := []struct {
 		input    string
 		expected string
@@ -37,8 +36,10 @@ func TestUnpack(t *testing.T) {
 }
 
 func TestUnpackInvalidString(t *testing.T) {
-	invalidStrings := []string{"3abc", "45", "aaa10b",
-		`qw\ne\` /* from README.md */}
+	invalidStrings := []string{
+		"3abc", "45", "aaa10b",
+		`qw\ne\`, /* from README.md */
+	}
 	for _, tc := range invalidStrings {
 		tc := tc
 		t.Run(tc, func(t *testing.T) {
