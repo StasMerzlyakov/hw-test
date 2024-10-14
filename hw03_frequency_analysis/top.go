@@ -6,11 +6,6 @@ import (
 	"strings"
 )
 
-type frequencyInf struct {
-	freq int
-	text string
-}
-
 var dashWorld = regexp.MustCompile("--+")
 
 func Top10(src string) []string {
