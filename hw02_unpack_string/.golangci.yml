@@ -51,6 +51,5 @@ linters-settings:
         allow:
           - $gostd
           - github.com/stretchr/testify/require
-          - github.com/StasMerzlyakov/hw-test/hw02_unpack_string
         files:
           - $all
