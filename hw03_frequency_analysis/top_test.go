@@ -7,7 +7,7 @@ import (
 )
 
 // Change to true if needed.
-var taskWithAsteriskIsCompleted = false
+var taskWithAsteriskIsCompleted = true
 
 var text = `Как видите, он  спускается  по  лестнице  вслед  за  своим
 	другом   Кристофером   Робином,   головой   вниз,  пересчитывая
@@ -78,5 +78,49 @@ func TestTop10(t *testing.T) {
 			}
 			require.Equal(t, expected, Top10(text))
 		}
+	})
+}
+
+func TestTrim(t *testing.T) {
+	// "Нога" и "нога" - это одинаковые слова, "нога!", "нога", "нога," и " 'нога' " - это одинаковые слова;
+	t.Run("test_punctuations", func(t *testing.T) {
+		text := "Нога нога нога нога нога 'нога' "
+		expected := []string{
+			"нога",
+		}
+		require.Equal(t, expected, Top10(text))
+	})
+
+	// "какой-то" и "какойто" - это разные слова.
+	t.Run("test_some", func(t *testing.T) {
+		text := "какой-то какойто "
+		expected := []string{
+			"какой-то", "какойто",
+		}
+		require.Equal(t, expected, Top10(text))
+	})
+
+	// "dog,cat", "dog...cat", "dogcat" - разные слова
+	t.Run("test_dog", func(t *testing.T) {
+		text := "dog,cat  dog...cat dogcat"
+		expected := []string{
+			"dog,cat", "dog...cat", "dogcat",
+		}
+		require.Equal(t, expected, Top10(text))
+	})
+
+	// "-------" это слово
+	t.Run("test_dash_word", func(t *testing.T) {
+		text := "------- ------- ------- - -------"
+		expected := []string{
+			"-------",
+		}
+		require.Equal(t, expected, Top10(text))
+	})
+
+	// "-" словом не является
+	t.Run("test_dash", func(t *testing.T) {
+		text := "-"
+		require.Equal(t, 0, len(Top10(text)))
 	})
 }
