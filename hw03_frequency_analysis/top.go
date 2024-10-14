@@ -24,32 +24,24 @@ func Top10(src string) []string {
 				continue
 			}
 		}
-
-		curVal := freqMap[word] + 1
-		freqMap[word] = curVal
+		freqMap[word]++
 	}
 
-	frequencyList := make([]frequencyInf, 0, len(freqMap))
-	for k, v := range freqMap {
-		frequencyList = append(frequencyList, frequencyInf{
-			freq: v,
-			text: k,
-		})
+	wordsSlice := make([]string, 0, len(freqMap))
+	for k := range freqMap {
+		wordsSlice = append(wordsSlice, k)
 	}
 
-	sort.Slice(frequencyList, func(i, j int) bool {
-		return frequencyList[i].freq > frequencyList[j].freq ||
-			frequencyList[i].freq == frequencyList[j].freq && strings.Compare(frequencyList[i].text, frequencyList[j].text) < 0
+	sort.Slice(wordsSlice, func(i, j int) bool {
+		a, b := wordsSlice[i], wordsSlice[j]
+		return freqMap[a] > freqMap[b] ||
+			freqMap[a] == freqMap[b] && strings.Compare(a, b) < 0
 	})
 
-	var top []string
 	topSize := 10
-	if topSize > len(frequencyList) {
-		topSize = len(frequencyList)
-	}
-	for i := 0; i < topSize; i++ {
-		top = append(top, frequencyList[i].text)
+	if topSize > len(wordsSlice) {
+		topSize = len(wordsSlice)
 	}
 
-	return top
+	return wordsSlice[:topSize]
 }
