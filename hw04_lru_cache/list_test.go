@@ -171,6 +171,20 @@ func TestList_PushFront(t *testing.T) {
 	require.Equal(t, twenty, ten.Prev)
 	require.Nil(t, ten.Next)
 	require.Equal(t, l.Back(), ten)
+
+	thirty := l.PushFront(30) // [30, 20, 10]
+	require.Equal(t, 3, l.Len())
+
+	require.Equal(t, l.Front(), thirty)
+	require.Nil(t, thirty.Prev)
+	require.Equal(t, twenty, thirty.Next)
+
+	require.Equal(t, thirty, twenty.Prev)
+	require.Equal(t, ten, twenty.Next)
+
+	require.Equal(t, twenty, ten.Prev)
+	require.Nil(t, ten.Next)
+	require.Equal(t, l.Back(), ten)
 }
 
 func TestList_MoveToFront(t *testing.T) {

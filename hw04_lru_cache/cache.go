@@ -41,7 +41,7 @@ func (lru *lruCache) Set(key Key, value interface{}) bool {
 	listItem := lru.queue.PushFront(chVal)
 	lru.items[key] = listItem
 
-	if lru.queue.Len() == lru.capacity {
+	if lru.queue.Len() > lru.capacity {
 		lastElem := lru.queue.Back() // must exists!!
 		chVal = lastElem.Value.(*cacheValue)
 		backKey := chVal.key
