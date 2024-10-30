@@ -32,7 +32,7 @@ func worker(taskChan <-chan Task,
 	}
 }
 
-func watchDog(maxErrorsCount int,
+func waitWorkers(maxErrorsCount int,
 	allDoneCount int,
 	stopCh chan struct{},
 	doneChan <-chan struct{},
@@ -78,26 +78,16 @@ func Run(tasks []Task, n, m int) error {
 		taskChan <- task
 	}
 	close(taskChan)
-	errCount := 0
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		errCount = watchDog(m, n, stopCh, doneChan, errChan)
-	}()
 
 	for i := 0; i < n; i++ {
 		// start workers
-		wg.Add(1)
 		go func() {
-			defer wg.Done()
 			worker(taskChan, stopCh, doneChan, errChan)
 		}()
 	}
 
-	wg.Wait()
+	errCount := waitWorkers(m, n, stopCh, doneChan, errChan)
+
 	if errCount >= m {
 		return ErrErrorsLimitExceeded
 	}
