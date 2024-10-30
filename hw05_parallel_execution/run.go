@@ -10,7 +10,11 @@ var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 
 type Task func() error
 
-func worker(taskChan <-chan Task, stopCh <-chan struct{}, doneChan chan<- struct{}, errChan chan<- struct{}) {
+func worker(taskChan <-chan Task,
+	stopCh <-chan struct{},
+	doneChan chan<- struct{},
+	errChan chan<- struct{},
+) {
 	defer func() {
 		doneChan <- struct{}{}
 	}()
@@ -24,6 +28,33 @@ func worker(taskChan <-chan Task, stopCh <-chan struct{}, doneChan chan<- struct
 
 		if err := task(); err != nil {
 			errChan <- struct{}{}
+		}
+	}
+}
+
+func watchDog(maxErrorsCount int,
+	allDoneCount int,
+	stopCh chan struct{},
+	doneChan <-chan struct{},
+	errChan <-chan struct{},
+) int {
+	errCount := 0
+	doneCount := allDoneCount
+	var once sync.Once
+	for {
+		select {
+		case <-errChan:
+			errCount++
+			if errCount >= maxErrorsCount {
+				once.Do(func() { // only once
+					close(stopCh) // stop goroutines
+				})
+			}
+		case <-doneChan: // wait workers
+			doneCount--
+			if doneCount == 0 {
+				return errCount
+			}
 		}
 	}
 }
@@ -53,26 +84,8 @@ func Run(tasks []Task, n, m int) error {
 
 	wg.Add(1)
 	go func() {
-		doneCount := n
 		defer wg.Done()
-
-		var once sync.Once
-		for {
-			select {
-			case <-errChan:
-				errCount++
-				if errCount >= m {
-					once.Do(func() { // only once
-						close(stopCh) // stop goroutines
-					})
-				}
-			case <-doneChan: // wait workers
-				doneCount--
-				if doneCount == 0 {
-					return
-				}
-			}
-		}
+		errCount = watchDog(m, n, stopCh, doneChan, errChan)
 	}()
 
 	for i := 0; i < n; i++ {
