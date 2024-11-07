@@ -45,6 +45,8 @@ linters:
     - unused
     - whitespace
 linters-settings:
+  funlen:
+    lines: 80
   depguard:
     rules:
       main:

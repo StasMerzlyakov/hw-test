@@ -4,5 +4,5 @@ format:
 
 test: format
 	go clean -testcache
-	go test ./...
+	go test -race ./...
 

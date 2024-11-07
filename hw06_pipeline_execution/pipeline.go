@@ -8,66 +8,52 @@ type (
 
 type Stage func(in In) (out Out)
 
-func ExecutePipeline(in In, done In, stages ...Stage) Out {
-	out := make(chan interface{})
-
-	startCh := make(chan interface{})
-	var prevCh In
-
-	prevCh = startCh
-	for _, stage := range stages {
-		prevCh = stage(prevCh) //  stage[i] out == stage[i+1] in
-
-	}
-
+func wrapChannelWithDone(in In, done In) Out {
+	out := make(chan any, 1) // buffered channel
 	go func() {
 		defer close(out)
+		defer func() {
+			go func() {
+				for { // read, if any, to terminate goroutines writing to the channel
+					if _, ok := <-in; !ok {
+						break
+					}
+				}
+			}()
+		}()
+		var ok bool
+		var val any
+
+		inWrap := in
+		var outWrap chan any // nil
 
 		for {
 			select {
 			case <-done:
-				close(startCh)
-				done = nil
-			case vl, ok := <-prevCh:
+				return
+			case val, ok = <-inWrap:
 				if !ok {
 					return
-				} else {
-					startCh <- vl
 				}
+				inWrap = nil
+				outWrap = out
+			case outWrap <- val:
+				outWrap = nil
+				inWrap = in
 			}
-
 		}
 	}()
 
-	/*go func() {
-		pCh := prevCh
-		var outCh Bi
-		var val interface{}
-		var dnCh = done
-		var ok bool
-		for {
-			select {
-			case <-dnCh:
-				close(startCh)
-				dnCh = nil // read once
-
-			case val, ok = <-pCh: // read stage[len(stages)-1] result and sent to out
-				if ok {
-					fmt.Printf("received result %v\n", val)
-					pCh = nil
-					outCh = out
-				} else {
-					close(out)
-					return
-				}
-			case outCh <- val:
-				fmt.Printf("send result %v\n", val)
-				outCh = nil
-				pCh = prevCh
-			}
-		}
-	}() */
-
 	return out
+}
 
+func ExecutePipeline(in In, done In, stages ...Stage) Out {
+	prevCh := wrapChannelWithDone(in, done)
+
+	for _, stage := range stages {
+		prevCh = stage(prevCh) //  stage[i] out == stage[i+1] in
+		prevCh = wrapChannelWithDone(prevCh, done)
+	}
+
+	return prevCh
 }
