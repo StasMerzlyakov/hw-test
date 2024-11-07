@@ -19,19 +19,15 @@ var isFullTesting = true
 
 func TestPipeline(t *testing.T) {
 	// Stage generator
-	g := func(name string, f func(v interface{}) interface{}) Stage {
+	g := func(_ string, f func(v interface{}) interface{}) Stage {
 		return func(in In) Out {
 			out := make(Bi)
 			go func() {
 				defer close(out)
 				for v := range in {
-					fmt.Printf("%v received %v\n", name, v)
 					time.Sleep(sleepPerStage)
-					val := f(v)
-					out <- val
-					fmt.Printf("%v send success %v -> %v\n", name, v, val)
+					out <- f(v)
 				}
-				fmt.Printf("%v complete\n", name)
 			}()
 			return out
 		}
