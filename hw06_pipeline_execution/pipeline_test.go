@@ -1,6 +1,7 @@
 package hw06pipelineexecution
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 	"testing"
@@ -101,7 +102,7 @@ func TestAllStageStop(t *testing.T) {
 	}
 	wg := sync.WaitGroup{}
 	// Stage generator
-	g := func(_ string, f func(v interface{}) interface{}) Stage {
+	g := func(name string, f func(v interface{}) interface{}) Stage {
 		return func(in In) Out {
 			out := make(Bi)
 			wg.Add(1)
@@ -110,7 +111,9 @@ func TestAllStageStop(t *testing.T) {
 				defer close(out)
 				for v := range in {
 					time.Sleep(sleepPerStage)
-					out <- f(v)
+					n := f(v)
+					fmt.Printf("name %s, processing %v, resutl %v\n", name, v, n)
+					out <- n
 				}
 			}()
 			return out
@@ -150,6 +153,5 @@ func TestAllStageStop(t *testing.T) {
 		wg.Wait()
 
 		require.Len(t, result, 0)
-
 	})
 }
