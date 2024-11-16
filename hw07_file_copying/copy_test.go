@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -70,20 +71,20 @@ func TestCopy(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			fromPath := path.Join(TestDataDir, test.input)
 
-			output := tempFileName("temp_output", ".tmp")
+			toPath := tempFileName("temp_output", ".tmp")
 
-			require.NoError(t, Copy(fromPath, output, test.offset, test.limit))
+			require.NoError(t, Copy(fromPath, toPath, test.offset, test.limit))
 
 			expectedFile := path.Join(TestDataDir, test.expected)
 
 			expected, err := os.ReadFile(expectedFile)
 			require.NoError(t, err)
 
-			actual, err := os.ReadFile(output)
+			actual, err := os.ReadFile(toPath)
 			require.NoError(t, err)
 
 			require.True(t, reflect.DeepEqual(expected, actual))
-			require.NoError(t, os.Remove(output))
+			require.NoError(t, os.Remove(toPath))
 		})
 	}
 }
@@ -95,4 +96,44 @@ func tempFileName(prefix, suffix string) string {
 	}
 
 	return filepath.Join(os.TempDir(), prefix+hex.EncodeToString(randBytes)+suffix)
+}
+
+func TestOffsetToLong(t *testing.T) {
+	fromPath := path.Join(TestDataDir, "input.txt")
+
+	fi, err := os.Stat(fromPath)
+	require.NoError(t, err)
+
+	tooLongOffset := fi.Size() + 100
+
+	toPath := tempFileName("temp_output", ".tmp")
+
+	err = Copy(fromPath, toPath, tooLongOffset, 0)
+
+	// проверка что ошибка вообще есть;
+	// возможно избыточно, но наткнулся на такую ошибку:
+	// errors: Is(nil) behaves unexpectedly #40442
+	// https://github.com/golang/go/issues/40442
+	require.Error(t, err)
+
+	require.ErrorIs(t, err, ErrOffsetExceedsFileSize)
+
+	_, err = os.Stat(toPath)
+	require.Error(t, err)
+	require.ErrorIs(t, err, fs.ErrNotExist)
+}
+
+func TestUnknownFileSize(t *testing.T) {
+	fromPath := "/dev/urandom"
+	toPath := tempFileName("temp_output", ".tmp")
+
+	err := Copy(fromPath, toPath, 0, 0)
+
+	require.Error(t, err)
+
+	require.ErrorIs(t, err, ErrUnsupportedFile)
+
+	_, err = os.Stat(toPath)
+	require.Error(t, err)
+	require.ErrorIs(t, err, fs.ErrNotExist)
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 )
@@ -12,6 +13,20 @@ var (
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
+	var fi os.FileInfo
+	var err error
+	if fi, err = os.Stat(fromPath); err != nil {
+		return fmt.Errorf("%w - %v", ErrUnsupportedFile, err.Error())
+	}
+
+	if fi.Size() == 0 {
+		return fmt.Errorf("%w - unknown input file size", ErrUnsupportedFile)
+	}
+
+	if fi.Size() < offset {
+		return fmt.Errorf("%w - size: %d, offset: %d", ErrOffsetExceedsFileSize, fi.Size(), offset)
+	}
+
 	input, err := os.Open(fromPath)
 	if err != nil {
 		panic(err)
@@ -24,7 +39,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	}()
 
 	if _, err := input.Seek(offset, io.SeekStart); err != nil {
-		panic(err) // offset больше, чем размер файла - невалидная ситуация
+		panic(err)
 	}
 
 	output, err := os.OpenFile(toPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
