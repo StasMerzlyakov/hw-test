@@ -17,6 +17,7 @@ func RunCmd(cmd []string, env Environment) (returnCode int) {
 	process := exec.Command(command, args...)
 	process.Stdin = os.Stdin
 	process.Stdout = os.Stdout
+	process.Stderr = os.Stderr
 
 	process.Env = merge(sysEnv, env)
 
