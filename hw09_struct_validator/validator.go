@@ -214,11 +214,11 @@ func int64ValidationBuilder(tag string) (validator[int64], error) {
 
 	var vldRetList = make([]validator[int64], len(vldList))
 
-	for _, vldDef := range vldList {
+	for id, vldDef := range vldList {
 		if vld, err := int64ValidationBuilder(vldDef); err != nil {
 			return nil, err
 		} else {
-			vldRetList = append(vldRetList, vld)
+			vldRetList[id] = vld
 		}
 	}
 
@@ -288,11 +288,11 @@ func stringValidationBuilder(tag string) (validator[string], error) {
 
 	var vldRetList = make([]validator[string], len(vldList))
 
-	for _, vldDef := range vldList {
+	for id, vldDef := range vldList {
 		if vld, err := stringValidationBuilder(vldDef); err != nil {
 			return nil, err
 		} else {
-			vldRetList = append(vldRetList, vld)
+			vldRetList[id] = vld
 		}
 	}
 
