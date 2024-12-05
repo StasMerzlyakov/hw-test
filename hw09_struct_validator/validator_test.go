@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type UserRole string
@@ -36,9 +38,10 @@ type (
 	}
 
 	AppUsers struct {
-		ID    string `json:"id" validate:"len:36"`
-		Users []User
-		meta  json.RawMessage //nolint:unused
+		ID        string `json:"id" validate:"len:36"`
+		Users     []User `validate:"nested"`
+		NotNested User
+		meta      json.RawMessage //nolint:unused
 	}
 )
 
@@ -66,7 +69,9 @@ func TestValidate(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-	Validate(AppUsers{
-		Users: []User{{}},
+	err := Validate(AppUsers{
+		Users:     []User{{}},
+		NotNested: User{},
 	})
+	require.Error(t, err)
 }

@@ -24,7 +24,7 @@ func (v ValidationErrors) Error() string {
 }
 
 func Validate(v interface{}) error {
-	vErr := ProcessField("", v, "")
+	vErr := ProcessField("", v, "nested")
 	return ValidationErrors(vErr)
 }
 
@@ -52,13 +52,15 @@ func ProcessField(path string, field any, tag string) []ValidationError {
 			}
 		}
 	case reflect.Struct:
-		for i := 0; i < v.NumField(); i++ {
-			field := v.Type().Field(i)
-			if field.IsExported() {
-				value := v.Field(i).Interface()
-				alias, _ := field.Tag.Lookup("validate")
-				pErr := ProcessField(path+"/"+field.Name, value, alias)
-				errors = append(errors, pErr...)
+		if tag == "nested" {
+			for i := 0; i < v.NumField(); i++ {
+				field := v.Type().Field(i)
+				if field.IsExported() {
+					value := v.Field(i).Interface()
+					alias, _ := field.Tag.Lookup("validate")
+					pErr := ProcessField(path+"/"+field.Name, value, alias)
+					errors = append(errors, pErr...)
+				}
 			}
 		}
 	case reflect.Slice:
@@ -87,14 +89,14 @@ func ProcessField(path string, field any, tag string) []ValidationError {
 				}
 			}
 		case reflect.Struct:
-
-			// TODO check 'validate:nested'
-			for i := 0; i < v.Len(); i++ {
-				field := v.Index(i)
-				value := field.Interface()
-				elemPath := fmt.Sprintf("%s[%d]", path, i)
-				vErrs := ProcessField(elemPath, value, tag)
-				errors = append(errors, vErrs...)
+			if tag == "nested" {
+				for i := 0; i < v.Len(); i++ {
+					field := v.Index(i)
+					value := field.Interface()
+					elemPath := fmt.Sprintf("%s[%d]", path, i)
+					vErrs := ProcessField(elemPath, value, tag)
+					errors = append(errors, vErrs...)
+				}
 			}
 		}
 	}
