@@ -34,6 +34,12 @@ type (
 		Code int    `validate:"in:200,404,500"`
 		Body string `json:"omitempty"`
 	}
+
+	AppUsers struct {
+		ID    string `json:"id" validate:"len:36"`
+		Users []User
+		meta  json.RawMessage //nolint:unused
+	}
 )
 
 func TestValidate(t *testing.T) {
@@ -57,4 +63,10 @@ func TestValidate(t *testing.T) {
 			_ = tt
 		})
 	}
+}
+
+func TestRun(t *testing.T) {
+	Validate(AppUsers{
+		Users: []User{{}},
+	})
 }
