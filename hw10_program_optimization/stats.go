@@ -2,7 +2,6 @@ package hw10programoptimization
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"regexp"
 	"strings"
@@ -23,47 +22,112 @@ type User struct {
 
 type DomainStat map[string]int
 
+type SearchResult struct {
+	Name  string
+	Count int
+}
+
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-	u, err := getUsers(r)
-	if err != nil {
-		return nil, fmt.Errorf("get users error: %w", err)
-	}
-	return countDomains(u, domain)
-}
-
-type users [100_000]User
-
-func getUsers(r io.Reader) (result users, err error) {
-	scanner := bufio.NewScanner(r)
-
-	i := 0
-	for scanner.Scan() {
-		tokenText := scanner.Bytes()
-		var user User
-		err = easyjson.Unmarshal(tokenText, &user)
-		if err != nil {
-			return result, err
-		}
-		result[i] = user
-		i++
-	}
-	return
-}
-
-func countDomains(u users, domain string) (DomainStat, error) {
+	errChan := make(chan error, 1)
+	stopChan := make(chan struct{}, 1)
 	result := make(DomainStat)
 
-	for _, user := range u {
-		matched, err := regexp.Match("\\."+domain, []byte(user.Email))
-		if err != nil {
-			return nil, err
-		}
+	userChan := getUsers(r, stopChan, errChan)
+	searchResult := domainSearcher(userChan, domain, stopChan, errChan)
 
-		if matched {
-			num := result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]
-			num++
-			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])] = num
-		}
+	doneChan := counter(searchResult, stopChan, result)
+
+	select {
+	case <-doneChan:
+		return result, nil
+	case err := <-errChan:
+		close(stopChan)
+		return nil, err
 	}
-	return result, nil
+}
+
+func counter(searchCh <-chan SearchResult, stopChan <-chan struct{}, result DomainStat) <-chan struct{} {
+	doneChan := make(chan struct{}, 1)
+	go func() {
+		for {
+			select {
+			case searchResult, ok := <-searchCh:
+				if ok {
+					result[searchResult.Name] += searchResult.Count
+				} else {
+					// work done
+					doneChan <- struct{}{}
+				}
+			case <-stopChan:
+				return
+			}
+		}
+	}()
+
+	return doneChan
+}
+
+func getUsers(r io.Reader,
+	stopChan <-chan struct{},
+	errChan chan<- error,
+) <-chan User {
+	scanner := bufio.NewScanner(r)
+	userChan := make(chan User)
+
+	go func() {
+		defer close(userChan)
+		for scanner.Scan() {
+			select {
+			// stopChan (on error in countDomains())
+			case <-stopChan:
+				return
+			default:
+			}
+			tokenText := scanner.Bytes()
+			var user User
+			err := easyjson.Unmarshal(tokenText, &user)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			userChan <- user
+		}
+	}()
+
+	return userChan
+}
+
+func domainSearcher(userChan <-chan User,
+	domain string,
+	stopChan <-chan struct{},
+	errChan chan<- error,
+) <-chan SearchResult {
+	searchResult := make(chan SearchResult, 1)
+	go func() {
+		defer close(searchResult)
+		for user := range userChan {
+			select {
+			// stopChan (on error in countDomains())
+			case <-stopChan:
+				return
+			default:
+			}
+
+			matched, err := regexp.Match("\\."+domain, []byte(user.Email))
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			if matched {
+				name := strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])
+				searchResult <- SearchResult{
+					Name:  name,
+					Count: 1,
+				}
+			}
+		}
+	}()
+
+	return searchResult
 }
