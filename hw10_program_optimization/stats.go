@@ -3,6 +3,7 @@ package hw10programoptimization
 import (
 	"bufio"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/mailru/easyjson"
@@ -34,7 +35,7 @@ func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 	bufReader := bufio.NewReader(r)
 
 	userChan := getUsers(bufReader, stopChan, errChan)
-	searchResult := domainSearcher(userChan, domain, stopChan)
+	searchResult := domainSearcher(userChan, domain, stopChan, errChan)
 
 	doneChan := counter(searchResult, stopChan, result)
 
@@ -101,10 +102,14 @@ func getUsers(r io.Reader,
 func domainSearcher(userChan <-chan User,
 	domain string,
 	stopChan <-chan struct{},
+	errChan chan<- error,
 ) <-chan SearchResult {
 	searchResult := make(chan SearchResult, 1)
 	go func() {
 		defer close(searchResult)
+
+		regCache := make(map[string]*regexp.Regexp)
+		var err error
 
 		for user := range userChan {
 			select {
@@ -114,8 +119,19 @@ func domainSearcher(userChan <-chan User,
 			default:
 			}
 
-			name := strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])
-			if strings.HasSuffix(name, "."+domain) {
+			reg := regCache[domain]
+			if reg == nil {
+				reg, err = regexp.Compile("\\." + domain)
+				if err != nil {
+					errChan <- err
+					return
+				}
+
+				regCache[domain] = reg
+			}
+
+			if reg.MatchString(user.Email) {
+				name := strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])
 				searchResult <- SearchResult{
 					Name:  name,
 					Count: 1,
