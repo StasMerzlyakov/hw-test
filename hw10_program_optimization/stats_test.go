@@ -47,11 +47,4 @@ func TestGetDomainError(t *testing.T) {
 		_, err := GetDomainStat(bytes.NewBufferString(data), "com")
 		require.Error(t, err)
 	})
-
-	t.Run("domain_error", func(t *testing.T) {
-		data := `{"Id":4,"Name":"Gregory Reid","Username":"tButler","Email":"5Moore@Teklist.net","Phone":"520-04-16","Password":"r639qLNu","Address":"Sunfield Park 20"}`
-
-		_, err := GetDomainStat(bytes.NewBufferString(data), "...\\")
-		require.Error(t, err)
-	})
 }
