@@ -105,6 +105,10 @@ func domainSearcher(userChan <-chan User,
 	searchResult := make(chan SearchResult, 1)
 	go func() {
 		defer close(searchResult)
+
+		regCache := make(map[string]*regexp.Regexp)
+		var err error
+
 		for user := range userChan {
 			select {
 			// stopChan (on error in countDomains())
@@ -113,13 +117,18 @@ func domainSearcher(userChan <-chan User,
 			default:
 			}
 
-			matched, err := regexp.Match("\\."+domain, []byte(user.Email))
-			if err != nil {
-				errChan <- err
-				return
+			reg := regCache[domain]
+			if reg == nil {
+				reg, err = regexp.Compile("\\." + domain)
+				if err != nil {
+					errChan <- err
+					return
+				}
+
+				regCache[domain] = reg
 			}
 
-			if matched {
+			if reg.MatchString(user.Email) {
 				name := strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])
 				searchResult <- SearchResult{
 					Name:  name,
