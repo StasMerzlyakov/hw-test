@@ -32,7 +32,9 @@ func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 	stopChan := make(chan struct{}, 1)
 	result := make(DomainStat)
 
-	userChan := getUsers(r, stopChan, errChan)
+	bufReader := bufio.NewReader(r)
+
+	userChan := getUsers(bufReader, stopChan, errChan)
 	searchResult := domainSearcher(userChan, domain, stopChan, errChan)
 
 	doneChan := counter(searchResult, stopChan, result)
