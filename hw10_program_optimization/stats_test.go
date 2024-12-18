@@ -49,6 +49,7 @@ func TestGetDomainError(t *testing.T) {
 	})
 
 	t.Run("domain_error", func(t *testing.T) {
+		//nolint:lll
 		data := `{"Id":4,"Name":"Gregory Reid","Username":"tButler","Email":"5Moore@Teklist.net","Phone":"520-04-16","Password":"r639qLNu","Address":"Sunfield Park 20"}`
 
 		_, err := GetDomainStat(bytes.NewBufferString(data), "...\\")
