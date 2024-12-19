@@ -1,3 +1,4 @@
+//go:build !bench
 // +build !bench
 
 package hw10programoptimization
@@ -9,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:lll
 func TestGetDomainStat(t *testing.T) {
 	data := `{"Id":1,"Name":"Howard Mendoza","Username":"0Oliver","Email":"aliquid_qui_ea@Browsedrive.gov","Phone":"6-866-899-36-79","Password":"InAQJvsq","Address":"Blackbird Place 25"}
 {"Id":2,"Name":"Jesse Vasquez","Username":"qRichardson","Email":"mLynch@broWsecat.com","Phone":"9-373-949-64-00","Password":"SiZLeNSGn","Address":"Fulton Hill 80"}
@@ -35,5 +37,22 @@ func TestGetDomainStat(t *testing.T) {
 		result, err := GetDomainStat(bytes.NewBufferString(data), "unknown")
 		require.NoError(t, err)
 		require.Equal(t, DomainStat{}, result)
+	})
+}
+
+func TestGetDomainError(t *testing.T) {
+	t.Run("json_error", func(t *testing.T) {
+		data := `{"Id":1,`
+
+		_, err := GetDomainStat(bytes.NewBufferString(data), "com")
+		require.Error(t, err)
+	})
+
+	t.Run("domain_error", func(t *testing.T) {
+		//nolint:lll
+		data := `{"Id":4,"Name":"Gregory Reid","Username":"tButler","Email":"5Moore@Teklist.net","Phone":"520-04-16","Password":"r639qLNu","Address":"Sunfield Park 20"}`
+
+		_, err := GetDomainStat(bytes.NewBufferString(data), "...\\")
+		require.Error(t, err)
 	})
 }

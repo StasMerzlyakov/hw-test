@@ -1,0 +1,62 @@
+linters:
+  disabled-all: true
+  enable:
+    - asciicheck
+    - bodyclose
+    - depguard
+    - dogsled
+    - dupl
+    - durationcheck
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - funlen
+    - gci
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - gofmt
+    - gofumpt
+    - goheader
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - importas
+    - ineffassign
+    - lll
+    - makezero
+    - misspell
+    - nestif
+    - nilerr
+    - noctx
+    - nolintlint
+    - prealloc
+    - predeclared
+    - revive
+    - staticcheck
+    - stylecheck
+    - tagliatelle
+    - thelper
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+linters-settings:
+  funlen:
+    lines: 80
+  depguard:
+    rules:
+      main:
+        allow:
+          - $gostd
+          - github.com/stretchr/testify/require
+          - github.com/stretchr/testify/assert
+          - github.com/mailru/easyjson
+        files:
+          - $all
+  gosec:
+    excludes:
+      - G404
